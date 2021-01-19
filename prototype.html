@@ -1,0 +1,121 @@
+<html>
+
+<head>
+    <!-- Use CDN -->
+    <script src="https://unpkg.com/deckly@1.0.6/umd/deckly.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/deckly@1.0.6/umd/deckly.css">
+    <!-- or
+    <script src="../umd/deckly.min.js"></script>
+    <link rel="stylesheet" href="../umd/deckly.css">
+    -->
+</head>
+
+<body>
+    <div id="root"></div>
+    <script>
+        // const IMD_DOMAINS = ["IMD18_mean", "Access_mean", "Crime_mean", "Education_mean", "Employment_mean", "Health_mean", "Housing_mean", "Income_mean"]
+        const AIR_YEARS = ["2016", "2017", "2018", "2019", "2020"];
+        const VAL_YEARS = ["2007", "2013", "2016", "2019"];
+        Deckly({
+            title: "AirBNB Christchurch",
+            container: document.querySelector("#root"),
+            data: "Christchurch.geojson",
+            // colorBy: d => {
+            //     var percChange = (1 - d.properties.valuations['2019'].LandValue.mean / d.properties.valuations['2016'].LandValue.mean);
+            //     if (isFinite(percChange)) {
+            //         return percChange + 50;
+            //     } else {
+            //         return 0;
+            //     }
+            // },
+            // colorScale: "Blues",
+            colorBy: d => {
+                // percentage change in mean land value from 2016 to 2019
+                var ValPercChange = (d.properties.valuations['2019'].LandValue.mean / d.properties.valuations['2016'].LandValue.mean - 1) * 100;
+                // percentage change in the number of active airbnbs from 2017 to 2019
+                var AirPercChange = (d.properties.airbnbs['2019']['Active']['count'] / d.properties.airbnbs['2017']['Active']['count'] - 1) * 100;
+                // non finite values are messing things up, replace with 'recognizable' values
+                if (isFinite(ValPercChange)) {
+                    ValPercChange = Math.min(Math.max(ValPercChange, 0), 100);
+                } else {
+                    ValPercChange = 1.618; 
+                }
+                if (isFinite(AirPercChange)) {
+                    AirPercChange += Math.min(Math.max(AirPercChange, 0), 100);
+                } else {
+                    AirPercChange = 3.141;
+                }
+                return [ValPercChange, AirPercChange]
+            },
+            colorScale: ["Blues", "Reds"],
+            hoverMessage: d => d.properties.name,
+            // perText: "--",
+            // perFunc: d => {
+            //     const RATE_PER = 1E5;
+            //     var f = JSON.parse(JSON.stringify(d))
+            //     console.log(f);
+            //     for (var subkey of["cancer", "smoking"]) {
+            //         for (var k in f[subkey]) {
+            //             if (k.includes("total")) {
+            //                 f[subkey][k] = f[subkey][k] / f.age.Total.Total * RATE_PER
+            //             } else if (k.includes("non-maori")) {
+            //                 f[subkey][k] = f[subkey][k] / f.age["Non-maori"].Total * RATE_PER
+            //             } else {
+            //                 f[subkey][k] = f[subkey][k] / f.age["Maori"].Total * RATE_PER
+            //             }
+            //         }
+            //     }
+            //     return f
+            // },
+            legendTitle: "Percentage Change",
+            legendLabels: ["MeanLandValue ->", "AirBNBs ->"],
+            // limits: [1,3],
+            plots: [{
+                id: "landvalues",
+                data: data => [{
+                    x: VAL_YEARS,
+                    y: VAL_YEARS.map(y => {
+                        // PlotData = data.valuations[y]
+                        // for(var property in PlotData) {
+                        //     console.log(property + "=" + PlotData[property]);
+                        // }
+                        return data.aggregate ? data.valuations[y].LandValue.mean : data.valuations[y].LandValue.mean;
+                    }), //data.aggregate ? data[k] / 86 : data[k]
+                    type: 'line',
+                }],
+                layout: {
+                    title: d => `Mean Parcel Value in ${d ? d.properties.name : "Christchurch"}`,
+                }
+            },
+            {
+                id: "airbnbrevenues",
+                data: data => [{
+                    x: AIR_YEARS,
+                    y: AIR_YEARS.map(y => {
+                        return data.aggregate ? data.airbnbs[y].RevenueNZD.mean : data.airbnbs[y].RevenueNZD.mean;
+                    }), //data.aggregate ? data[k] / 86 : data[k]
+                    type: 'line',
+                }],
+                layout: {
+                    title: d => `Mean AirBNB Revenue (NZD) in ${d ? d.properties.name : "Christchurch"}`,
+                }
+            },
+            {
+                id: "airbnbactive",
+                data: data => [{
+                    x: AIR_YEARS,
+                    y: AIR_YEARS.map(y => {
+                        return data.aggregate ? data.airbnbs[y].Active.count : data.airbnbs[y].Active.count;
+                    }), //data.aggregate ? data[k] / 86 : data[k]
+                    type: 'line',
+                }],
+                layout: {
+                    title: d => `Active AirBNBs in ${d ? d.properties.name : "Christchurch"}`,
+                }
+            }
+        ]
+        })
+    </script>
+</body>
+
+</html>
